@@ -63,6 +63,17 @@ using ptr = std::unique_ptr<T>;
 
 #endif
 
+#if __cplusplus <= 201103
+#include <memory>
+#include <iostream> // for debug
+namespace std {
 
+template<typename T, typename ... Args>
+inline static std::unique_ptr<T> make_unique(Args&& ... args) {
+    return std::unique_ptr<T>{new T{std::forward<Args>(args) ...}};
+}
+
+}
+#endif
 
 #endif
