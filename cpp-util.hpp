@@ -14,21 +14,11 @@
 
 namespace util {
 
-inline static std::string format(std::string const& text) {
-    return text;
-}
-
-template<typename Head, typename ... Tail>
-inline static std::string format(std::string const& text, Head const& head, Tail const& ... tail) {
-    auto pos = text.find("{}");
-    if (pos == std::string::npos)
-        throw std::logic_error{"too few arguments"};
-    std::string rest = text.substr(pos+2, text.length());
-    return text.substr(0, pos) + std::to_string(head) + format(rest, tail ...);
-}
-
-
 namespace math {
+
+//
+// clamp
+//
 
 template<typename T>
 struct clamp_impl {
@@ -52,6 +42,120 @@ inline T& operator<=(T& var, clamp_impl<T> const& c) {
 }
 
 } // end of math
+
+
+//
+// format
+//
+
+inline static std::string format(std::string const& text) {
+    return text;
+}
+
+template<typename Head, typename ... Tail>
+inline static std::string format(std::string const& text, Head const& head, Tail const& ... tail) {
+    auto pos = text.find("{}");
+    if (pos == std::string::npos)
+        throw std::logic_error{"too few arguments"};
+    std::string rest = text.substr(pos+2, text.length());
+    return text.substr(0, pos) + std::to_string(head) + format(rest, tail ...);
+}
+
+//
+// enumerate
+//
+
+template<typename T>
+struct enumerate_iterator {
+    using container_type = T;
+    using value_type = typename container_type::value_type;
+
+    enumerate_iterator& operator++() {
+        if (pos < container.size())
+            ++pos;
+        return *this;
+    }
+    enumerate_iterator operator++(int) {
+        enumerate_iterator<T> result{*this};
+        ++(*this);
+        return result;
+    }
+
+    enumerate_iterator& operator--() {
+        if (pos > 0)
+            --pos;
+        return *this;
+    }
+    enumerate_iterator operator--(int) {
+        enumerate_iterator<T> result{*this};
+        --(*this);
+        return result;
+    }
+
+    std::pair<size_t, value_type const&> operator*() const {
+        return std::make_pair(pos, container[pos]);
+    }
+    bool operator==(enumerate_iterator const& rhs) {
+        return pos == rhs.pos;
+    }
+    bool operator!=(enumerate_iterator const& rhs) {
+        return !(*this == rhs);
+    }
+    enumerate_iterator operator+=(size_t n) {
+        pos += n;
+        pos <= ::util::math::clamp(0, container.size());
+        return *this;
+    }
+    enumerate_iterator operator-=(size_t n) {
+        pos -= n;
+        pos <= ::util::math::clamp(0, container.size());
+        return *this;
+    }
+
+    size_t pos;
+    container_type container;
+};
+
+template<typename T>
+inline static enumerate_iterator<T> operator+(enumerate_iterator<T> const& iter, size_t n) {
+    auto result = iter;
+    result += n;
+    return result;
+}
+template<typename T>
+inline static enumerate_iterator<T> operator+(size_t n, enumerate_iterator<T> const& iter) {
+    return iter + n;
+}
+template<typename T>
+inline static enumerate_iterator<T> operator-(enumerate_iterator<T> const& iter, size_t n) {
+    auto result = iter;
+    result -= n;
+    return result;
+}
+
+
+template<typename T>
+struct enumerate_impl {
+    using container_type = T;
+    using value_type = std::pair<std::size_t, typename container_type::value_type>;
+    using iterator = enumerate_iterator<T>;
+
+    iterator begin() { return iterator{0, container}; }
+    iterator const& begin() const { return iterator{0, container}; }
+
+    iterator end() { return iterator{container.size(), container}; }
+    iterator const& end() const { return iterator{container.size(), container}; }
+
+    T const& container;
+};
+
+struct enumerate_tag {};
+static enumerate_tag enumerate;
+
+template<typename T>
+inline static enumerate_impl<T> operator|(T const& vec, enumerate_tag) {
+    return enumerate_impl<T>{vec};
+}
 
 } // end of util
 
