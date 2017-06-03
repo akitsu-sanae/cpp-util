@@ -66,29 +66,8 @@ inline static std::string format(std::string const& text, Head const& head, Tail
 // enumerate
 //
 template<typename T>
-struct enumerate_impl {
-    using inner_container_type = T;
-    using inner_value_type = typename inner_container_type::value_type;
-    using value_type = std::pair<std::size_t, inner_value_type const&>;
-    using container_type = std::vector<value_type>;
-    using reference = typename container_type::reference;
-    using const_reference = typename container_type::const_reference;
-    using iterator = typename container_type::iterator;
-    using const_iterator = typename container_type::const_iterator;
-    using difference_type = typename container_type::difference_type;
-    using size_type = typename container_type::size_type;
-
-    explicit enumerate_impl(inner_container_type const& container) {
-        m_container.reserve(container.size());
-        auto it = container.begin();
-        size_type index = 0;
-        while (it != container.end()) {
-            m_container.emplace_back(index, *it);
-            ++index;
-            ++it;
-        }
-    }
-
+struct enumerate_base {
+    using value_type = T;
     auto begin() { return m_container.begin(); }
     auto begin() const { return m_container.begin(); }
     auto cbegin() const { return m_container.cbegin(); }
@@ -97,16 +76,81 @@ struct enumerate_impl {
     auto end() const { return m_container.end(); }
     auto cend() const { return m_container.cend(); }
 
-    size_type size() const { return m_container.size(); }
     bool empty() const { return m_container.empty(); }
-    container_type m_container;
+
+    virtual ~enumerate_base() = default;
+protected:
+    std::vector<value_type> m_container;
 };
+
+template<typename T>
+struct enumerate_impl : public enumerate_base<std::pair<std::size_t, typename T::value_type const&>> {
+    using value_type = std::pair<std::size_t, typename T::value_type const&>;
+    using container_type = std::vector<value_type>;
+    using reference = typename container_type::reference;
+    using const_reference = typename container_type::const_reference;
+    using iterator = typename container_type::iterator;
+    using const_iterator = typename container_type::const_iterator;
+    using difference_type = typename container_type::difference_type;
+    using size_type = typename T::size_type;
+
+    explicit enumerate_impl(T const& container) {
+        this->m_container.reserve(container.size());
+        auto it = container.begin();
+        size_type index = 0;
+        while (it != container.end()) {
+            this->m_container.emplace_back(index, *it);
+            ++index;
+            ++it;
+        }
+    }
+    size_type size() const { return this->m_container.size(); }
+};
+
 struct enumerate_tag {};
 static enumerate_tag enumerate;
-template<typename T>
-inline static enumerate_impl<T> operator|(T const& vec, enumerate_tag) {
+
+template<
+    typename T,
+    typename = typename T::value_type> // check whether T is Container
+inline static auto operator|(T const& vec, enumerate_tag) {
     return enumerate_impl<T>{vec};
 }
+
+template<typename T>
+struct mutable_enumerate_impl : public enumerate_base<std::pair<std::size_t, typename T::value_type&>> {
+    using value_type = std::pair<std::size_t, typename T::value_type&>;
+    using container_type = std::vector<value_type>;
+    using reference = typename container_type::reference;
+    using const_reference = typename container_type::const_reference;
+    using iterator = typename container_type::iterator;
+    using const_iterator = typename container_type::const_iterator;
+    using difference_type = typename container_type::difference_type;
+    using size_type = typename T::size_type;
+
+    explicit mutable_enumerate_impl(T& container) {
+        this->m_container.reserve(container.size());
+        auto it = container.begin();
+        size_type index = 0;
+        while (it != container.end()) {
+            this->m_container.emplace_back(index, *it);
+            ++index;
+            ++it;
+        }
+    }
+    size_type size() const { return this->m_container.size(); }
+};
+
+
+struct mutable_enumerate_tag {};
+static mutable_enumerate_tag mutable_enumerate;
+template<
+    typename T,
+    typename = typename T::value_type> // check whether T is Container
+inline static auto operator|(T& vec, mutable_enumerate_tag) {
+    return mutable_enumerate_impl<T>{vec};
+}
+
 // reverse
 template<typename T>
 struct reverse_impl {

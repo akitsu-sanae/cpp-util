@@ -20,6 +20,11 @@ int main() {
     std::cout << "-=-=-=-= enumerate =-=-=-=-" << std::endl;
     for (auto const& e : vec | util::enumerate)
         std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
+    std::cout << "-=-=-=-= mutable enumerate =-=-=-=-" << std::endl;
+    for (auto& e : vec | util::mutable_enumerate) {
+        std::cout << util::format("{} + {} = {}", e.second, e.first, e.second + e.first) << std::endl;
+        e.second += e.first;
+    }
 
     std::cout << "-=-=-=-= reverse =-=-=-=-" << std::endl;
     for (auto const& e : vec | util::reverse)
