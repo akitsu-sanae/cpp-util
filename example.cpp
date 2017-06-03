@@ -13,7 +13,24 @@ int main() {
     std::make_unique<int>(42);
 
     std::vector<int> vec{13, 42, 114514};
+    std::cout << "-=-=-=-= plain =-=-=-=-" << std::endl;
+    for (auto const& e : vec)
+        std::cout << e << std::endl;
+
+    std::cout << "-=-=-=-= enumerate =-=-=-=-" << std::endl;
     for (auto const& e : vec | util::enumerate)
+        std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
+
+    std::cout << "-=-=-=-= reverse =-=-=-=-" << std::endl;
+    for (auto const& e : vec | util::reverse)
+        std::cout << e << std::endl;
+
+    std::cout << "-=-=-=-= reverse |> enumerate =-=-=-=-" << std::endl;
+    for (auto const& e : vec | util::reverse | util::enumerate)
+        std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
+
+    std::cout << "-=-=-=-= enumerate |> reverse =-=-=-=-" << std::endl;
+    for (auto const& e : vec | util::enumerate | util::reverse)
         std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
 }
 

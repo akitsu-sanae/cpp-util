@@ -9,6 +9,7 @@
 #ifndef AKITSU_CPP_UTIL_HPP
 #define AKITSU_CPP_UTIL_HPP
 
+#include <vector>
 #include <string>
 #include <stdexcept>
 
@@ -64,106 +65,68 @@ inline static std::string format(std::string const& text, Head const& head, Tail
 //
 // enumerate
 //
-
-template<typename T>
-struct enumerate_iterator {
-    using container_type = T;
-    using value_type = typename container_type::value_type;
-    using const_iterator = typename container_type::const_iterator;
-
-    enumerate_iterator& operator++() {
-        ++iter;
-        return *this;
-    }
-    enumerate_iterator operator++(int) {
-        enumerate_iterator<T> result{*this};
-        ++(*this);
-        return result;
-    }
-
-    enumerate_iterator& operator--() {
-        --iter;
-        return *this;
-    }
-    enumerate_iterator operator--(int) {
-        enumerate_iterator<T> result{*this};
-        --(*this);
-        return result;
-    }
-
-    std::pair<size_t, value_type> operator*() const {
-        return std::make_pair(std::distance(container.begin(), iter), *iter);
-    }
-    bool operator==(enumerate_iterator const& rhs) { return iter == rhs.iter; }
-    bool operator!=(enumerate_iterator const& rhs) { return iter != rhs.iter; }
-    enumerate_iterator operator+=(size_t n) {
-        iter += n;
-        return *this;
-    }
-    enumerate_iterator operator-=(size_t n) {
-        iter -= n;
-        return *this;
-    }
-
-    const_iterator iter;
-    container_type const& container;
-};
-
-template<typename T>
-inline static enumerate_iterator<T> operator+(enumerate_iterator<T> const& iter, size_t n) {
-    auto result = iter;
-    result += n;
-    return result;
-}
-template<typename T>
-inline static enumerate_iterator<T> operator+(size_t n, enumerate_iterator<T> const& iter) {
-    return iter + n;
-}
-template<typename T>
-inline static enumerate_iterator<T> operator-(enumerate_iterator<T> const& iter, size_t n) {
-    auto result = iter;
-    result -= n;
-    return result;
-}
-
-
 template<typename T>
 struct enumerate_impl {
-    using container_type = T;
-    using value_type = std::pair<std::size_t, typename container_type::value_type>;
-    using iterator = enumerate_iterator<T>;
+    using inner_container_type = T;
+    using inner_value_type = typename inner_container_type::value_type;
+    using value_type = std::pair<std::size_t, inner_value_type const&>;
+    using container_type = std::vector<value_type>;
+    using reference = typename container_type::reference;
+    using const_reference = typename container_type::const_reference;
+    using iterator = typename container_type::iterator;
+    using const_iterator = typename container_type::const_iterator;
+    using difference_type = typename container_type::difference_type;
+    using size_type = typename container_type::size_type;
 
-    iterator begin() { return iterator{container.begin(), container}; }
-    iterator begin() const { return iterator{container.begin(), container}; }
+    explicit enumerate_impl(inner_container_type const& container) {
+        m_container.reserve(container.size());
+        auto it = container.begin();
+        size_type index = 0;
+        while (it != container.end()) {
+            m_container.emplace_back(index, *it);
+            ++index;
+            ++it;
+        }
+    }
 
-    iterator end() { return iterator{container.end(), container}; }
-    iterator end() const { return iterator{container.end(), container}; }
+    auto begin() { return m_container.begin(); }
+    auto begin() const { return m_container.begin(); }
+    auto cbegin() const { return m_container.cbegin(); }
 
-    T const& container;
+    auto end() { return m_container.end(); }
+    auto end() const { return m_container.end(); }
+    auto cend() const { return m_container.cend(); }
+
+    size_type size() const { return m_container.size(); }
+    bool empty() const { return m_container.empty(); }
+    container_type m_container;
 };
-
 struct enumerate_tag {};
 static enumerate_tag enumerate;
-
 template<typename T>
 inline static enumerate_impl<T> operator|(T const& vec, enumerate_tag) {
     return enumerate_impl<T>{vec};
 }
-
-
 // reverse
 template<typename T>
 struct reverse_impl {
     using container_type = T;
     using value_type = typename container_type::value_type;
-    using iterator = typename container_type::reverse_iterator;
-    using const_iterator = typename container_type::const_reverse_iterator;
+    using reference = typename container_type::reference;
+    using const_reference = typename container_type::const_reference;
+    using iterator = typename std::reverse_iterator<typename container_type::iterator>;
+    using const_iterator = typename std::reverse_iterator<typename container_type::const_iterator>;
+    using difference_type = typename container_type::difference_type;
+    using size_type = typename container_type::size_type;
 
-    const_iterator begin() const { return container.rbegin(); }
-    const_iterator cbegin() const { return container.crbegin(); }
+    const_iterator begin() const { return const_iterator(container.end()); }
+    const_iterator cbegin() const { return const_iterator(container.cend()); }
 
-    const_iterator end() const { return container.rend(); }
-    const_iterator cend() const { return container.crend(); }
+    const_iterator end() const { return const_iterator(container.begin()); }
+    const_iterator cend() const { return const_iterator(container.cbegin()); }
+
+    size_type size() const { return container.size(); }
+    bool empty() const { return container.empty(); }
 
     container_type const& container;
 };
