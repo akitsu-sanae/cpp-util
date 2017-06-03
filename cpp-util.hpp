@@ -157,6 +157,32 @@ inline static enumerate_impl<T> operator|(T const& vec, enumerate_tag) {
     return enumerate_impl<T>{vec};
 }
 
+
+// reverse
+template<typename T>
+struct reverse_impl {
+    using container_type = T;
+    using value_type = typename container_type::value_type;
+    using iterator = typename container_type::reverse_iterator;
+    using const_iterator = typename container_type::const_reverse_iterator;
+
+    const_iterator begin() const { return container.rbegin(); }
+    const_iterator cbegin() const { return container.crbegin(); }
+
+    const_iterator end() const { return container.rend(); }
+    const_iterator cend() const { return container.crend(); }
+
+    container_type const& container;
+};
+
+struct reverse_tag {};
+static reverse_tag reverse;
+
+template<typename T>
+inline static reverse_impl<T> operator|(T const& vec, reverse_tag) {
+    return reverse_impl<T>{vec};
+}
+
 } // end of util
 
 #ifdef AKITSU_CPP_UTIL_ENABLE_EVIL
