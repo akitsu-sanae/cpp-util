@@ -13,8 +13,7 @@ int main() {
     std::make_unique<int>(42);
 
     std::vector<int> vec{13, 42, 114514};
-    for (auto const& e : vec | util::enumerate) {
-        std::cout << e.first << ": " << e.second << std::endl;
-    }
+    for (auto const& e : vec | util::enumerate)
+        std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
 }
 

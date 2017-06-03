@@ -69,10 +69,10 @@ template<typename T>
 struct enumerate_iterator {
     using container_type = T;
     using value_type = typename container_type::value_type;
+    using const_iterator = typename container_type::const_iterator;
 
     enumerate_iterator& operator++() {
-        if (pos < container.size())
-            ++pos;
+        ++iter;
         return *this;
     }
     enumerate_iterator operator++(int) {
@@ -82,8 +82,7 @@ struct enumerate_iterator {
     }
 
     enumerate_iterator& operator--() {
-        if (pos > 0)
-            --pos;
+        --iter;
         return *this;
     }
     enumerate_iterator operator--(int) {
@@ -92,28 +91,22 @@ struct enumerate_iterator {
         return result;
     }
 
-    std::pair<size_t, value_type const&> operator*() const {
-        return std::make_pair(pos, container[pos]);
+    std::pair<size_t, value_type> operator*() const {
+        return std::make_pair(std::distance(container.begin(), iter), *iter);
     }
-    bool operator==(enumerate_iterator const& rhs) {
-        return pos == rhs.pos;
-    }
-    bool operator!=(enumerate_iterator const& rhs) {
-        return !(*this == rhs);
-    }
+    bool operator==(enumerate_iterator const& rhs) { return iter == rhs.iter; }
+    bool operator!=(enumerate_iterator const& rhs) { return iter != rhs.iter; }
     enumerate_iterator operator+=(size_t n) {
-        pos += n;
-        pos <= ::util::math::clamp(0, container.size());
+        iter += n;
         return *this;
     }
     enumerate_iterator operator-=(size_t n) {
-        pos -= n;
-        pos <= ::util::math::clamp(0, container.size());
+        iter -= n;
         return *this;
     }
 
-    size_t pos;
-    container_type container;
+    const_iterator iter;
+    container_type const& container;
 };
 
 template<typename T>
@@ -140,11 +133,11 @@ struct enumerate_impl {
     using value_type = std::pair<std::size_t, typename container_type::value_type>;
     using iterator = enumerate_iterator<T>;
 
-    iterator begin() { return iterator{0, container}; }
-    iterator const& begin() const { return iterator{0, container}; }
+    iterator begin() { return iterator{container.begin(), container}; }
+    iterator begin() const { return iterator{container.begin(), container}; }
 
-    iterator end() { return iterator{container.size(), container}; }
-    iterator const& end() const { return iterator{container.size(), container}; }
+    iterator end() { return iterator{container.end(), container}; }
+    iterator end() const { return iterator{container.end(), container}; }
 
     T const& container;
 };
