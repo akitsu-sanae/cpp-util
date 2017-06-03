@@ -1,3 +1,4 @@
+#define AKITSU_CPP_UTIL_ENABLE_EVIL
 #include "cpp-util.hpp"
 
 #include <iostream>
@@ -37,5 +38,15 @@ int main() {
     std::cout << "-=-=-=-= enumerate |> reverse =-=-=-=-" << std::endl;
     for (auto const& e : vec | util::enumerate | util::reverse)
         std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
+
+
+    std::cout << "-=-=-=-= syntax sugar, printing std::map, string literal =-=-=-=-" << std::endl;
+    std::cout << std::map<std::string, int> {
+        "hoge"_s >> 12,
+        "fuga"_s >> 42,
+        "piyo"_s >> 114,
+        "nyan"_s >> 514
+    } << std::endl;
+
 }
 

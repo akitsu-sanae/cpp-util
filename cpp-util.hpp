@@ -191,6 +191,30 @@ inline static reverse_impl<T> operator|(T const& vec, reverse_tag) {
 template<typename T>
 using ptr = std::unique_ptr<T>;
 
+template<typename T, typename U>
+std::pair<T, U> operator>>(T const& t, U const& u) {
+    return std::make_pair(t, u);
+}
+
+std::string operator"" _s(char const* str, std::size_t length) {
+    return std::string{str, length};
+}
+
+#include <map>
+#include <ostream>
+
+template<typename Key, typename Val>
+std::ostream& operator<<(std::ostream& os, std::map<Key, Val> const& map) {
+    os << "Map{";
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        if (it != map.begin())
+            os << ", ";
+        os << it->first << " >> " << it->second;
+    }
+    os << "}";
+}
+
+
 #endif
 
 #if __cplusplus <= 201103
