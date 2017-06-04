@@ -212,6 +212,7 @@ std::ostream& operator<<(std::ostream& os, std::map<Key, Val> const& map) {
         os << it->first << " >> " << it->second;
     }
     os << "}";
+    return os;
 }
 
 
