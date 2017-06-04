@@ -48,5 +48,13 @@ int main() {
         "nyan"_s >> 514
     } << std::endl;
 
+    std::cout << "-=-=-=-= range =-=-=-=-" << std::endl;
+    util::range(vec)
+        .map([](auto const& i) { return i * 2; })
+        .foreach([](auto const& i) { std::cout << i << std::endl; });
+
+    std::cout << std::boolalpha;
+    std::cout << "Exist x. x == 86 ? :" << util::range(vec).exist([](int i) { return i == 86; }) << std::endl;
+    std::cout << "All x. x > 20 ? : " << util::range(vec).all([](int i) { return i > 20; }) << std::endl;
 }
 

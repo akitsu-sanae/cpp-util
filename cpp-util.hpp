@@ -183,6 +183,64 @@ inline static reverse_impl<T> operator|(T const& vec, reverse_tag) {
     return reverse_impl<T>{vec};
 }
 
+
+template<typename T>
+struct range_impl {
+    using container_type = T;
+    using value_type = typename container_type::value_type;
+    using reference = typename container_type::reference;
+    using const_reference = typename container_type::const_reference;
+    using iterator = typename container_type::iterator;
+    using const_iterator = typename container_type::const_iterator;
+    using difference_type = typename container_type::difference_type;
+    using size_type = typename container_type::size_type;
+
+    explicit range_impl(container_type& container) :
+        start{container.begin()},
+        last{container.end()}
+    {}
+    explicit range_impl(iterator const& start, iterator const& last) :
+        start{start},
+        last{last}
+    {}
+    template<typename F>
+    range_impl& map(F const& f) {
+        for (auto it = start; it != last; ++it)
+            *it = f(*it);
+        return *this;
+    }
+    template<typename F>
+    range_impl& foreach(F const& f) {
+        for (auto it = start; it != last; ++it)
+            f(*it);
+        return *this;
+    }
+    template<typename Pred>
+    bool exist(Pred const& pred) const {
+        for (auto it = start; it != last; ++it) {
+            if (pred(*it))
+                return true;
+        }
+        return false;
+    }
+    template<typename Pred>
+    bool all(Pred const& pred) const {
+        for (auto it = start; it != last; ++it) {
+            if (!pred(*it))
+                return false;
+        }
+        return true;
+    }
+
+    iterator start, last;
+};
+
+template<typename T>
+inline static auto range(T& con) {
+    return range_impl<T>{con};
+}
+
+
 } // end of util
 
 #ifdef AKITSU_CPP_UTIL_ENABLE_EVIL
