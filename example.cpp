@@ -1,7 +1,7 @@
 #define AKITSU_CPP_UTIL_ENABLE_EVIL
+#include <iostream>
 #include "cpp-util.hpp"
 
-#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -13,32 +13,33 @@ int main() {
 
     std::make_unique<int>(42);
 
+    auto println = [&](int e) { std::cout << e << std::endl; };
+    auto println_with_index = [&](std::pair<int, int const&> e) {
+        std::cout << util::format("index {}: {}", e.first, e.second) << std::endl;
+    };
+
     std::vector<int> vec{13, 42, 114514};
-    std::cout << "-=-=-=-= plain =-=-=-=-" << std::endl;
-    for (auto const& e : vec)
-        std::cout << e << std::endl;
+    util::container(vec) | println;
+
+    std::cout << "-=-=-=-= + 1 =-=-=-=-" << std::endl;
+    util::mut_container(vec) | [](int& e) { e += 1; };
 
     std::cout << "-=-=-=-= enumerate =-=-=-=-" << std::endl;
-    for (auto const& e : vec | util::enumerate)
-        std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
+    util::container(vec).enumerate() | println_with_index;
     std::cout << "-=-=-=-= mutable enumerate =-=-=-=-" << std::endl;
-    for (auto& e : vec | util::mutable_enumerate) {
-        std::cout << util::format("{} + {} = {}", e.second, e.first, e.second + e.first) << std::endl;
+    util::mut_container(vec).enumerate() | [](std::pair<int, int&> e) {
         e.second += e.first;
-    }
+    };
+    util::container(vec) | println;
 
     std::cout << "-=-=-=-= reverse =-=-=-=-" << std::endl;
-    for (auto const& e : vec | util::reverse)
-        std::cout << e << std::endl;
+    util::container(vec).reverse() | println;
 
     std::cout << "-=-=-=-= reverse |> enumerate =-=-=-=-" << std::endl;
-    for (auto const& e : vec | util::reverse | util::enumerate)
-        std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
+    util::container(vec).reverse().enumerate() | println_with_index;
 
     std::cout << "-=-=-=-= enumerate |> reverse =-=-=-=-" << std::endl;
-    for (auto const& e : vec | util::enumerate | util::reverse)
-        std::cout << util::format("{}: {}", e.first, e.second) << std::endl;
-
+    util::container(vec).enumerate().reverse() | println_with_index;
 
     std::cout << "-=-=-=-= syntax sugar, printing std::map, string literal =-=-=-=-" << std::endl;
     std::cout << std::map<std::string, int> {

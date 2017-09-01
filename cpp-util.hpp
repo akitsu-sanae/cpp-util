@@ -11,6 +11,8 @@
 
 #include <vector>
 #include <string>
+#include <memory>
+#include <functional>
 #include <stdexcept>
 
 namespace util {
@@ -65,124 +67,165 @@ inline static std::string format(std::string const& text, Head const& head, Tail
 //
 // enumerate
 //
-template<typename T>
-struct enumerate_base {
-    using value_type = T;
-    auto begin() { return m_container.begin(); }
-    auto begin() const { return m_container.begin(); }
-    auto cbegin() const { return m_container.cbegin(); }
+template<typename Container>
+struct container_impl {
+    using inner_container_type = Container;
+    using this_type = container_impl<inner_container_type>;
+    using value_type = typename inner_container_type::value_type;
+    using element_type = value_type;
+    using reference = typename inner_container_type::reference;
+    using const_reference = typename inner_container_type::const_reference;
+    using iterator = typename inner_container_type::iterator;
+    using const_iterator = typename inner_container_type::const_iterator;
+    using difference_type = typename inner_container_type::difference_type;
+    using size_type = typename inner_container_type::size_type;
 
-    auto end() { return m_container.end(); }
-    auto end() const { return m_container.end(); }
-    auto cend() const { return m_container.cend(); }
-
-    bool empty() const { return m_container.empty(); }
-
-    virtual ~enumerate_base() = default;
-protected:
-    std::vector<value_type> m_container;
-};
-
-template<typename T>
-struct enumerate_impl : public enumerate_base<std::pair<std::size_t, typename T::value_type const&>> {
-    using value_type = std::pair<std::size_t, typename T::value_type const&>;
-    using container_type = std::vector<value_type>;
-    using reference = typename container_type::reference;
-    using const_reference = typename container_type::const_reference;
-    using iterator = typename container_type::iterator;
-    using const_iterator = typename container_type::const_iterator;
-    using difference_type = typename container_type::difference_type;
-    using size_type = typename T::size_type;
-
-    explicit enumerate_impl(T const& container) {
-        this->m_container.reserve(container.size());
-        auto it = container.begin();
-        size_type index = 0;
-        while (it != container.end()) {
-            this->m_container.emplace_back(index, *it);
-            ++index;
-            ++it;
-        }
+    explicit container_impl() {}
+    explicit container_impl(std::function<size_type (size_type)> const& f) :
+        convert_index{f}
+    {}
+    container_impl(container_impl const& rhs) :
+        convert_index{rhs.convert_index}
+    {
+        container_holder = std::make_unique<container_const_reference>(rhs.container_holder->inner());
     }
-    size_type size() const { return this->m_container.size(); }
-};
+    container_impl(container_impl&& rhs) :
+        convert_index{std::move(rhs.convert_index)},
+        container_holder{std::move(rhs.container_holder)}
+    {}
 
-struct enumerate_tag {};
-static enumerate_tag enumerate;
+    size_type size() const { return container_holder->const_inner().size(); }
 
-template<
-    typename T,
-    typename = typename T::value_type> // check whether T is Container
-inline static auto operator|(T const& vec, enumerate_tag) {
-    return enumerate_impl<T>{vec};
-}
+    value_type const& at(size_type i) const { return container_holder->const_inner()[i]; }
+    value_type const& operator[](size_type i) const { return container_holder->const_inner()[i]; }
 
-template<typename T>
-struct mutable_enumerate_impl : public enumerate_base<std::pair<std::size_t, typename T::value_type&>> {
-    using value_type = std::pair<std::size_t, typename T::value_type&>;
-    using container_type = std::vector<value_type>;
-    using reference = typename container_type::reference;
-    using const_reference = typename container_type::const_reference;
-    using iterator = typename container_type::iterator;
-    using const_iterator = typename container_type::const_iterator;
-    using difference_type = typename container_type::difference_type;
-    using size_type = typename T::size_type;
-
-    explicit mutable_enumerate_impl(T& container) {
-        this->m_container.reserve(container.size());
-        auto it = container.begin();
-        size_type index = 0;
-        while (it != container.end()) {
-            this->m_container.emplace_back(index, *it);
-            ++index;
-            ++it;
-        }
+    template<typename F>
+    this_type const& each(F&& f) const {
+        for (size_type i=0; i < size(); ++i)
+            f(container_holder->const_inner()[convert_index(i)]);
+        return *this;
     }
-    size_type size() const { return this->m_container.size(); }
+    template<typename F>
+    this_type& each(F&& f) {
+        for (size_type i=0; i < size(); ++i)
+            f(container_holder->inner()[convert_index(i)]);
+        return *this;
+    }
+    template<typename F>
+    this_type const& operator|(F&& f) const {
+        return each(std::forward<F>(f));
+    }
+    template<typename F>
+    this_type& operator|(F&& f) {
+        return each(std::forward<F>(f));
+    }
+    std::function<size_type (size_type)> convert_index = [](size_type i) {
+        return i;
+    };
+
+    auto enumerate() const {
+        using inner_type = std::vector<std::pair<size_type, value_type const&>>;
+        inner_type result_inner;
+        result_inner.reserve(size());
+        for (size_type i=0; i < size(); ++i)
+            result_inner.emplace_back(i, container_holder->const_inner()[convert_index(i)]);
+        container_impl<inner_type> result;
+        result.container_holder = std::make_unique<typename container_impl<inner_type>::container_instance>(result_inner);
+        return result;
+    }
+    auto enumerate() {
+        using inner_type = std::vector<std::pair<size_type, value_type&>>;
+        inner_type result_inner;
+        result_inner.reserve(size());
+        for (size_type i=0; i < size(); ++i)
+            result_inner.emplace_back(i, container_holder->inner()[convert_index(i)]);
+        container_impl<inner_type> result;
+        result.container_holder = std::make_unique<typename container_impl<inner_type>::container_instance>(result_inner);
+        return result;
+    }
+
+    template<typename F>
+    auto map(F f) const {
+        std::vector<value_type> result;
+        result.reserve(size());
+        for (size_type i=0; i < size(); ++i)
+            result.push_back(container_holder->const_inner()[convert_index(i)]);
+        return result;
+    }
+
+    template<typename F>
+    auto retain(F f) const {
+        std::vector<value_type> result;
+        result.reserve(size());
+        for (size_type i=0; i < size(); ++i) {
+            auto e = container_holder->const_inner()[convert_index(i)];
+            if (f(e))
+                result.push_back(e);
+        }
+        result.shirink_to_fit();
+        return result;
+    }
+
+    auto const reverse() const {
+        this_type result{[&](size_type i) {
+            return size() - convert_index(i) - 1;
+        }};
+        result.container_holder = std::make_unique<container_const_reference>(container_holder->const_inner());
+        return result;
+    }
+    auto reverse() {
+        this_type result{[&](size_type i) {
+            return size() - convert_index(i) - 1;
+        }};
+        result.container_holder = std::make_unique<container_reference>(container_holder->inner());
+        return result;
+    }
+
+    struct container_base {
+        virtual inner_container_type& inner() = 0;
+        virtual inner_container_type const& inner() const = 0;
+        inner_container_type const& const_inner() const { return inner(); }
+    };
+    struct container_instance : public container_base {
+        explicit container_instance(inner_container_type cont) :
+            cont{cont}
+        {}
+        inner_container_type& inner() override { return cont; }
+        inner_container_type const& inner() const override { return cont; }
+        inner_container_type cont;
+    };
+    struct container_reference : public container_base {
+        explicit container_reference(inner_container_type& cont) :
+            cont{cont}
+        {}
+        inner_container_type& inner() override { return cont; }
+        inner_container_type const& inner() const override { return cont; }
+        inner_container_type& cont;
+    };
+    struct container_const_reference : public container_base {
+        explicit container_const_reference(inner_container_type const& cont) :
+            cont{cont}
+        {}
+        inner_container_type& inner() override { throw std::logic_error{"this is cpp-util's bug"}; }
+        inner_container_type const& inner() const override { return cont; }
+        inner_container_type const&  cont;
+    };
+    std::unique_ptr<container_base> container_holder;
 };
 
-
-struct mutable_enumerate_tag {};
-static mutable_enumerate_tag mutable_enumerate;
-template<
-    typename T,
-    typename = typename T::value_type> // check whether T is Container
-inline static auto operator|(T& vec, mutable_enumerate_tag) {
-    return mutable_enumerate_impl<T>{vec};
+template<typename Container>
+static inline auto const container(Container const& con) {
+    container_impl<Container> result;
+    result.container_holder = std::make_unique<typename container_impl<Container>::container_const_reference>(con);
+    return result;
 }
 
-// reverse
-template<typename T>
-struct reverse_impl {
-    using container_type = T;
-    using value_type = typename container_type::value_type;
-    using reference = typename container_type::reference;
-    using const_reference = typename container_type::const_reference;
-    using iterator = typename std::reverse_iterator<typename container_type::iterator>;
-    using const_iterator = typename std::reverse_iterator<typename container_type::const_iterator>;
-    using difference_type = typename container_type::difference_type;
-    using size_type = typename container_type::size_type;
-
-    const_iterator begin() const { return const_iterator(container.end()); }
-    const_iterator cbegin() const { return const_iterator(container.cend()); }
-
-    const_iterator end() const { return const_iterator(container.begin()); }
-    const_iterator cend() const { return const_iterator(container.cbegin()); }
-
-    size_type size() const { return container.size(); }
-    bool empty() const { return container.empty(); }
-
-    container_type const& container;
-};
-
-struct reverse_tag {};
-static reverse_tag reverse;
-
-template<typename T>
-inline static reverse_impl<T> operator|(T const& vec, reverse_tag) {
-    return reverse_impl<T>{vec};
+template<typename Container>
+static inline auto mut_container(Container& con) {
+    container_impl<Container> result;
+    result.container_holder = std::make_unique<typename container_impl<Container>::container_reference>(con);
+    return result;
 }
-
 
 template<typename T>
 struct range_impl {
