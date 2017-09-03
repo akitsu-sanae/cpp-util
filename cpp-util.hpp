@@ -64,9 +64,6 @@ inline static std::string format(std::string const& text, Head const& head, Tail
     return text.substr(0, pos) + std::to_string(head) + format(rest, tail ...);
 }
 
-//
-// enumerate
-//
 template<typename Container>
 struct container_impl {
     using inner_container_type = Container;
@@ -144,6 +141,35 @@ struct container_impl {
         return result;
     }
 
+    auto adjacent() const {
+        using inner_type = std::vector<std::pair<value_type const&, value_type const&>>;
+        inner_type result_inner;
+        result_inner.reserve(size());
+        for (size_type i=0; i < size() - 1; ++i) {
+            auto const& inner = container_holder->const_inner();
+            auto const& first = inner[convert_index(i)];
+            auto const& second = inner[convert_index(i+1)];
+            result_inner.emplace_back(first, second);
+        }
+        container_impl<inner_type> result;
+        result.container_holder = std::make_unique<typename container_impl<inner_type>::container_instance>(result_inner);
+        return result;
+    }
+    auto adjacent() {
+        using inner_type = std::vector<std::pair<value_type&, value_type&>>;
+        inner_type result_inner;
+        result_inner.reserve(size());
+        for (size_type i=0; i < size() - 1; ++i) {
+            auto& inner = container_holder->inner();
+            auto& first = inner[convert_index(i)];
+            auto& second = inner[convert_index(i+1)];
+            result_inner.emplace_back(first, second);
+        }
+        container_impl<inner_type> result;
+        result.container_holder = std::make_unique<typename container_impl<inner_type>::container_instance>(result_inner);
+        return result;
+    }
+
     template<typename F>
     auto map(F f) const {
         std::vector<value_type> result;
@@ -165,6 +191,39 @@ struct container_impl {
         result.shirink_to_fit();
         return result;
     }
+
+    template<typename F>
+    value_type fold_left(value_type init, F f) const {
+        for (size_type i=0; i < size(); ++i)
+            init = f(init, container_holder->const_inner()[convert_index(i)]);
+        return init;
+    }
+    template<typename F>
+    value_type fold_right(value_type init, F f) const {
+        auto rev_cont = reverse();
+        return rev_cont->fold_left(init, f);
+    }
+
+    template<typename F> // F: value_type -> bool
+    bool exist(F f) const {
+        for (size_type i=0; i < size(); ++i) {
+            auto const& e = container_holder->const_inner()[convert_index(i)];
+            if (f(e))
+                return true;
+        }
+        return false;
+    }
+    template<typename F> // F: value_type -> bool
+    bool any(F f) const {
+        for (size_type i=0; i < size(); ++i){
+            auto const& e = container_holder->const_inner()[convert_index(i)];
+            if (!f(e))
+                return false;
+        }
+        return true;
+    }
+    template<typename F>
+    bool all(F f) const { return any(f); }
 
     auto const reverse() const {
         this_type result{[&](size_type i) {
