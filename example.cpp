@@ -53,6 +53,11 @@ int main() {
         "nyan"_s >> 514
     } << std::endl;
 
+    std::cout << "-=-=-=-= trim =-=-=-=-" << std::endl;
+    std::cout << util::trim_left("  hoge") << std::endl;
+    std::cout << util::trim_left("hoge  ") << std::endl;
+    std::cout << util::trim_left("  hoge  ") << std::endl;
+
     std::cout << "-=-=-=-= range =-=-=-=-" << std::endl;
     util::range(vec)
         .map([](auto const& i) { return i * 2; })

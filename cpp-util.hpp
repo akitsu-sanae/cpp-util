@@ -342,6 +342,46 @@ inline static auto range(T& con) {
     return range_impl<T>{con};
 }
 
+std::string& trim_left(std::string& str) {
+    auto start = std::begin(str);
+    while (std::isspace(*start))
+        ++start;
+    str.erase(std::begin(str), start);
+    return str;
+}
+
+std::string& trim_right(std::string& str) {
+    auto last = std::end(str);
+    while (std::isspace(*(last-1)))
+        --last;
+    str.erase(last, std::end(str));
+    return str;
+}
+
+std::string& trim(std::string& str) {
+    trim_left(str);
+    trim_right(str);
+    return str;
+}
+
+std::string trim_left(std::string const& str) {
+    auto result = str;
+    util::trim_left(result);
+    return result;
+}
+
+std::string trim_right(std::string const& str) {
+    auto result = str;
+    util::trim_right(result);
+    return result;
+}
+
+std::string trim(std::string const& str) {
+    auto result = str;
+    util::trim(result);
+    return result;
+}
+
 
 } // end of util
 
