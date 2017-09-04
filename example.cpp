@@ -41,6 +41,10 @@ int main() {
     std::cout << "-=-=-=-= enumerate |> reverse =-=-=-=-" << std::endl;
     util::container(vec).enumerate().reverse() | println_with_index;
 
+    std::cout << "-=-=-=-= fold_left =-=-=-=-" << std::endl;
+    std::cout << std::boolalpha;
+    std::cout << "sum: " << util::container(vec).fold_left(0, [](int l, int r) { return l + r;}) << std::endl;
+
     std::cout << "-=-=-=-= syntax sugar, printing std::map, string literal =-=-=-=-" << std::endl;
     std::cout << std::map<std::string, int> {
         "hoge"_s >> 12,

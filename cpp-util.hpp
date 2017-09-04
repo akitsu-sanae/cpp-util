@@ -232,12 +232,12 @@ struct container_impl {
         result.container_holder = std::make_unique<container_const_reference>(container_holder->const_inner());
         return result;
     }
-    auto reverse() {
-        this_type result{[&](size_type i) {
-            return size() - convert_index(i) - 1;
-        }};
-        result.container_holder = std::make_unique<container_reference>(container_holder->inner());
-        return result;
+    auto& reverse() {
+        auto convert_ = convert_index;
+        convert_index = [=](size_type i) {
+            return size() - convert_(i) - 1;
+        };
+        return *this;
     }
 
     struct container_base {
