@@ -88,6 +88,21 @@ std::string trim(std::string const& str) {
     return result;
 }
 
+template<typename R, typename T, typename F>
+inline static auto fold(R const& head, std::vector<T> const& vec, F const& f) {
+    R result = head;
+    for (auto const& e : vec)
+        result = f(result, e);
+    return result;
+}
+
+template<typename T, typename F>
+inline static auto fold(std::vector<T> const& vec, F const& f) {
+    T result = vec[0];
+    for (auto it=vec.begin()+1; it!=vec.end(); ++it)
+        result = f(result, *it);
+    return result;
+}
 
 } // end of util
 
@@ -129,6 +144,7 @@ inline static std::ostream& operator<<(std::ostream& os, std::vector<T> const& v
 template<typename T, typename U>
 inline static std::ostream& operator<<(std::ostream& os, std::pair<T, U> const& pair) {
     os << "Pair{" << pair.first << ", " << pair.second << "}";
+    return os;
 }
 
 #include <map>

@@ -23,6 +23,16 @@ int main() {
         "nyan"_s >> 514
     } << std::endl;
 
+    std::cout << util::fold(std::to_string(1),  std::vector<int>{2, 3, 4}, [](std::string const& l, int r) {
+            return l + ", " + std::to_string(r);
+            }) << std::endl;
+
+    std::cout << util::fold(
+            std::vector<std::string>{"hoge", "fuga", "piyo"},
+            [](std::string const& l, std::string const& r) {
+                return l + ", " + r;
+            }) << std::endl;
+
     std::cout << "-=-=-=-= trim =-=-=-=-" << std::endl;
     std::cout << util::trim_left("  hoge") << std::endl;
     std::cout << util::trim_left("hoge  ") << std::endl;
